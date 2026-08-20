@@ -1,7 +1,7 @@
 [project]
 name = "bank-sense-2-0"
 version = "0.1.0"
-description = "Add your description here"
+description = "End-to-end credit risk analytics with PD, LGD, ECL, macro stress testing and Streamlit dashboard."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -14,8 +14,6 @@ dependencies = [
     "streamlit>=1.62.0",
 ]
 
-[project.scripts]
-bank-sense-2-0 = "bank_sense_2_0:main"
 
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]
