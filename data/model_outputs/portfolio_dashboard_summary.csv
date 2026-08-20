@@ -1,0 +1,11 @@
+metric,value
+test_loans,5506.0
+total_ead,18331901726.45
+observed_default_rate,0.0753723211042499
+mean_predicted_pd,0.12713044324891412
+mean_predicted_lgd,0.5432452730970159
+total_predicted_ecl,1206035616.289273
+predicted_ecl_rate,0.06578889818884184
+covid_stressed_ecl,2913460395.908163
+covid_incremental_ecl,1707424779.61889
+covid_ecl_increase_pct,141.57332972240818

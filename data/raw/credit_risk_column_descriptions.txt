@@ -1,0 +1,146 @@
+COLUMN DESCRIPTIONS — Credit Risk Dataset
+==========================================
+50K Loans · 10 Sectors · Full Credit Lifecycle · Usability 10.0
+Author: Sergey Nefedov (sergionefedov)
+
+───────────────────────────────────────────────────────
+FILE 1: loans.csv (50,000 rows) — MAIN FILE
+───────────────────────────────────────────────────────
+loan_id               Unique loan identifier (LN-000001 to LN-050000)
+borrower_id           Borrower identifier (links to borrowers.csv)
+loan_amount_usd       Principal loan amount (USD); range $1,000 – $500,000
+loan_term_months      Loan duration in months (12 / 24 / 36 / 48 / 60 / 84)
+interest_rate_pct     Annual interest rate (%) at origination
+monthly_payment_usd   Fixed monthly payment (USD)
+origination_date      Date loan was issued (YYYY-MM-DD)
+loan_purpose          Purpose of the loan:
+                        debt_consolidation / home_improvement / business /
+                        medical / education / auto / personal / real_estate
+sector                Industry sector of borrower's employer (10 sectors):
+                        technology / healthcare / finance / manufacturing /
+                        retail / energy / construction / education /
+                        government / agriculture
+loan_grade            Credit grade assigned at origination: A / B / C / D / E / F
+sub_grade             Sub-grade within letter grade (e.g. A1–A5, B1–B5)
+loan_status           Current status: Fully Paid / Current / Charged Off /
+                      Late (31-120 days) / In Grace Period / Default
+is_default            TARGET VARIABLE — Binary: 1 if loan defaulted or charged off
+default_date          Date of default (null if not defaulted)
+recovery_rate         Fraction of principal recovered after default (0.0–1.0)
+total_paid_usd        Total amount paid over loan lifetime (USD)
+
+───────────────────────────────────────────────────────
+FILE 2: borrowers.csv (50,000 rows)
+───────────────────────────────────────────────────────
+borrower_id           Unique borrower identifier
+age                   Borrower age in years (21–75)
+annual_income_usd     Gross annual income (USD)
+employment_length_yrs  Years at current employer (0–35)
+employment_status     Full-time / Part-time / Self-employed / Retired / Unemployed
+home_ownership        Own / Mortgage / Rent / Other
+state                 US state abbreviation (50 states + DC)
+credit_score          FICO-equivalent credit score (300–850)
+credit_history_yrs    Length of credit history in years
+num_open_accounts     Number of open credit accounts
+num_derogatory_marks  Number of derogatory marks (late payments, collections, etc.)
+total_credit_limit    Total available credit across all accounts (USD)
+credit_utilization    Fraction of total credit currently used (0.0–1.0)
+debt_to_income_ratio  Monthly debt payments / gross monthly income (DTI ratio)
+num_hard_inquiries    Credit inquiries in past 12 months
+bankruptcies          Number of public record bankruptcies (0–3)
+tax_liens             Number of tax liens (0–2)
+
+───────────────────────────────────────────────────────
+FILE 3: payment_history.csv (~600,000 rows — monthly payments per loan)
+───────────────────────────────────────────────────────
+loan_id               Links to loans.csv
+payment_date          Date payment was due (YYYY-MM-DD)
+amount_due_usd        Scheduled payment amount (USD)
+amount_paid_usd       Actual payment made (USD); 0 if missed
+days_late             Days payment was late (0 = on time, null = not yet due)
+payment_status        on_time / late_1_30 / late_31_60 / late_61_90 /
+                      late_90_plus / missed / prepaid
+remaining_balance     Remaining principal after this payment (USD)
+cumulative_paid       Total amount paid to date on this loan (USD)
+
+───────────────────────────────────────────────────────
+FILE 4: credit_bureau.csv (50,000 rows — one per borrower at origination)
+───────────────────────────────────────────────────────
+borrower_id           Links to borrowers.csv
+report_date           Date of credit bureau pull (at loan origination)
+fico_score            FICO 8 score at time of application (300–850)
+vantage_score         VantageScore 3.0 at time of application (300–850)
+num_accounts_30d_late  Accounts 30+ days late in past 2 years
+num_accounts_60d_late  Accounts 60+ days late in past 2 years
+num_accounts_90d_late  Accounts 90+ days late in past 2 years
+oldest_account_yrs    Age of oldest credit account in years
+avg_account_age_yrs   Average age of all open accounts in years
+num_revolving_accounts  Number of revolving credit accounts (credit cards, HELOCs)
+revolving_balance_usd  Total balance across revolving accounts (USD)
+revolving_utilization  Revolving credit utilization rate (0.0–1.0)
+num_installment_accounts  Number of installment loan accounts
+collections_12m       Number of accounts sent to collections in past 12 months
+public_records        Number of public records (bankruptcies, liens, judgments)
+
+───────────────────────────────────────────────────────
+FILE 5: macroeconomic_context.csv (monthly, 2018–2024)
+───────────────────────────────────────────────────────
+date                  First day of month (YYYY-MM-DD)
+fed_funds_rate_pct    Federal funds effective rate (%)
+unemployment_rate_pct  US national unemployment rate (%)
+cpi_yoy_pct           CPI year-over-year inflation rate (%)
+sp500_return_1m_pct   S&P 500 monthly return (%)
+10y_treasury_yield    10-year US Treasury yield (%)
+consumer_confidence   Conference Board Consumer Confidence Index
+recession_indicator   Binary: 1 if NBER-designated recession month
+
+───────────────────────────────────────────────────────
+CALIBRATION SOURCES
+───────────────────────────────────────────────────────
+- Default rates by grade: LendingClub historical loan data (public Kaggle dataset)
+  Grade A: ~2% | Grade B: ~6% | Grade C: ~12% | Grade D: ~20% | Grade E+: ~30%+
+- Credit score distributions: FICO Score Distribution Report 2023
+- DTI and income distributions: Federal Reserve Survey of Consumer Finances 2022
+- Sector-level default rates: S&P Global Ratings Industry Default Studies 2023
+- Recovery rates: Moody's Annual Default Study 2023 (avg LGD ~55% for unsecured)
+- Macroeconomic variables: FRED (Federal Reserve Economic Data)
+- Payment timing patterns: Consumer Financial Protection Bureau (CFPB) reports
+
+───────────────────────────────────────────────────────
+DEFAULT RATE BY SECTOR (calibrated)
+───────────────────────────────────────────────────────
+Government:    ~4%   (most stable employment)
+Technology:    ~5%
+Healthcare:    ~5%
+Education:     ~7%
+Finance:       ~7%
+Manufacturing: ~9%
+Energy:       ~10%
+Retail:       ~11%
+Construction: ~13%
+Agriculture:  ~14%   (most volatile due to weather/commodity risk)
+
+───────────────────────────────────────────────────────
+SUGGESTED TASKS
+───────────────────────────────────────────────────────
+1. Default prediction (binary classification): predict is_default
+   — Key challenge: class imbalance (~12% default rate overall)
+   — Recommended metric: PR-AUC, KS statistic, Gini coefficient
+
+2. Probability of Default (PD) model: logistic regression / GBM scorecard
+   — Recreate classic Basel II / IFRS 9 credit risk modeling workflow
+
+3. Loss Given Default (LGD): regress recovery_rate for defaulted loans
+   — Features: loan_purpose, loan_grade, sector, collateral (home_ownership)
+
+4. Expected Credit Loss (ECL): PD × LGD × EAD (Exposure at Default)
+   — Full IFRS 9 impairment calculation pipeline
+
+5. Survival analysis: time-to-default using payment_history.csv
+   — Cox proportional hazards model with macroeconomic covariates
+
+6. Macroeconomic stress testing: how does default rate change with
+   unemployment +2%, rates +3%? Use macroeconomic_context.csv
+
+7. Vintage analysis: compare default rates by origination cohort
+   — Identify whether 2022 (high-rate) vintages perform worse than 2019
