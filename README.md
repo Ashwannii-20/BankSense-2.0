@@ -1,508 +1,323 @@
-# BankSense 2.0 🏦
+# BankSense 2.0 — Credit Risk, ECL & Macro Stress Testing
 
-## Credit Risk, Expected Loss & Macro Stress Testing
+**BankSense 2.0** is an end-to-end credit-risk analytics portfolio project built on a public 50,000-loan dataset. It combines Python-based PD/LGD modelling, probability calibration, expected credit loss (ECL), macro stress testing, a Streamlit dashboard, automated output checks, and Microsoft SQL Server analytics.
 
-BankSense 2.0 is an end-to-end credit-risk analytics project built around a synthetic banking portfolio.
+> **Scope:** This is an independent portfolio demonstration using public dataset records. It is not an IDBI Bank project, does not use confidential bank data, and is not a production credit-decisioning or regulatory reporting system.
 
-The project covers the full analytical workflow:
+## What the project demonstrates
 
-**Data Audit → Data Cleaning → Leakage Analysis → PD Modelling → PD Calibration → LGD Modelling → ECL → Macro Stress Testing → Portfolio Risk Dashboard**
+- Data audit, cleaning, data-quality checks, and feature-timing/leakage review.
+- Chronological model development rather than relying only on a random train/test split.
+- Probability of Default (PD) modelling with Logistic Regression and a Gradient Boosting challenger.
+- Platt and isotonic calibration comparison using a development-period design.
+- Loss Given Default (LGD) modelling on defaulted loans using `HistGradientBoostingRegressor`.
+- Loan-level ECL calculations using `PD × LGD × EAD`.
+- Six macro stress scenarios and sector-level loss analysis.
+- Interactive Streamlit portfolio and loan-level dashboard.
+- Microsoft SQL Server tables, Python-to-SQL data loading, analytical T-SQL queries, and data-quality checks.
+- Seven automated data-contract tests for exported model outputs.
 
-The objective is to demonstrate how borrower-level risk models can be combined with exposure information and macroeconomic scenarios to produce portfolio-level credit-risk insights.
+## Current 2023 out-of-time portfolio snapshot
 
----
+The latest local run was regenerated after fitting preprocessing on the training split only. The figures below reflect the refreshed outputs observed in the SQL Server reconciliation.
 
-## 🚀 Project Highlights
-
-### Probability of Default (PD)
-
-A Logistic Regression model was developed using origination-time information and evaluated using a chronological out-of-time test.
-
-**2023 out-of-time results:**
-
-| Metric | Result |
-|---|---:|
-| ROC-AUC | **0.8889** |
-| KS | **0.6402** |
-| Raw Brier Score | 0.0705 |
-| Platt-Calibrated Brier Score | **0.0584** |
-
-Platt calibration materially improved probability calibration while preserving the model's ranking performance.
-
----
-
-### Risk Segmentation
-
-Validation-derived PD thresholds were applied to the 2023 out-of-time population.
-
-| Risk Band | Average Predicted PD | Observed Default Rate |
-|---|---:|---:|
-| Very Low | 4.35% | **0.89%** |
-| Low | 7.66% | **3.58%** |
-| Medium | 11.00% | **10.44%** |
-| High | 15.99% | **12.13%** |
-| Very High | 51.17% | **33.33%** |
-
-Observed default rates were monotonic across the risk bands.
-
-The observed default rate increased from **0.89%** in the Very Low band to **33.33%** in the Very High band.
-
----
-
-### Loss Given Default (LGD)
-
-LGD modelling was performed on defaulted loans only.
-
-The model used:
-
-**HistGradientBoostingRegressor**
-
-**2023 out-of-time performance:**
-
-| Metric | Result |
-|---|---:|
-| MAE | **0.0802** |
-| RMSE | **0.0990** |
-| R² | **0.5448** |
-
-The model materially outperformed a simple mean-LGD baseline.
-
----
-
-### Expected Credit Loss (ECL)
-
-BankSense calculates loan-level expected credit loss as:
-
-```text
-ECL = PD × LGD × EAD
-```
-
-This combines:
-
-- Probability of Default
-- Loss Given Default
-- Exposure at Default
-
-to estimate expected loss at loan and portfolio level.
-
----
-
-## 📊 2023 Portfolio Snapshot
-
-| Metric | Result |
+| Metric | Latest result |
 |---|---:|
 | Test loans | **5,506** |
-| Total EAD | **£18.33B** |
-| Observed default rate | **7.54%** |
-| Mean calibrated PD | **12.71%** |
-| Mean predicted LGD | **54.32%** |
-| Predicted ECL | **£1.21B** |
-| ECL rate | **6.58%** |
-| COVID-like stressed ECL | **£2.91B** |
-| COVID-like ECL increase | **141.6%** |
+| Total Exposure at Default (EAD) | **£18.332B** |
+| Observed default rate | **7.5372%** |
+| Mean calibrated PD | **12.7292%** |
+| Mean predicted LGD | **54.3245%** |
+| Predicted ECL | **£1.207539B** |
+| ECL / total EAD | **6.5870%** |
+| COVID-like stressed ECL | **£2.916532B** |
+| COVID-like incremental ECL | **£1.708993B** |
+| COVID-like ECL increase vs baseline | **141.53%** |
 
----
+The Python output summary and SQL Server aggregate reconciliation differ only by tiny floating-point/decimal rounding amounts (less than £0.001 for the monetary comparisons shown). The six exported output files were loaded to SQL Server, and their expected row counts were confirmed.
 
-# 🌪️ Macro Stress Testing
+## PD modelling and calibration methodology
 
-BankSense contains six audited macroeconomic scenarios:
+The PD workflow uses an origination-time feature set and chronological splits:
 
 ```text
-Baseline
-Mild
-Adverse
-GFC-like
-Severe
-COVID-like
+2015–2020  → Train the base model and fit preprocessing
+2021       → Fit calibration candidates
+2022       → Compare calibration candidates and select the method
+2023       → Final out-of-time evaluation
 ```
 
-Scenario-specific sector PD and LGD stress multipliers are applied to the independently generated loan-level model outputs.
+Preprocessing is fitted on the training split only, then applied to the other splits. Candidate models and calibration methods are compared on development data before the 2023 results are reported. The 2023 cohort is not used to retune model parameters or validation-derived risk-band thresholds.
 
-### Out-of-Time Stress Results
+Calibration method comparison on the 2022 evaluation period:
 
-| Scenario | Average PD | Average LGD | BankSense ECL | Increase vs Baseline |
+| Method | Brier score (lower is better) | ROC-AUC | Mean predicted PD | Observed default rate |
 |---|---:|---:|---:|---:|
-| Baseline | 12.71% | 54.32% | **£1.206B** | 0.0% |
-| Mild | 15.15% | 55.70% | **£1.482B** | 22.9% |
-| Adverse | 18.32% | 57.54% | **£1.866B** | 54.7% |
-| GFC-like | 21.01% | 58.92% | **£2.207B** | 83.0% |
-| Severe | 22.41% | 59.83% | **£2.398B** | 98.9% |
-| COVID-like | **26.17%** | **61.67%** | **£2.913B** | **141.6%** |
+| Raw Logistic Regression | 0.065979 | 0.873515 | 17.5423% | 8.0775% |
+| **Platt calibration** | **0.058034** | **0.873515** | **10.7421%** | 8.0775% |
+| Isotonic calibration | 0.059264 | 0.872875 | 11.5569% | 8.0775% |
 
-The COVID-like scenario produces the largest modeled ECL increase.
+Platt calibration achieved the lowest Brier score in this comparison while preserving the raw model's ROC-AUC. This improves probability quality on the 2022 evaluation period, but does not eliminate the calibration gap in 2023. Re-run the notebook to regenerate run-specific final-test metrics after any modelling or preprocessing change.
 
----
+## Out-of-time calibration findings
 
-# 🏭 Sector Risk Analysis
+The fixed probability-bucket analysis of the 2023 test population shows that observed default rates generally increase as predicted PD rises. However, predicted probabilities remain higher than the observed rates, especially in the upper-risk tail.
 
-The project evaluates portfolio risk across sectors using:
+| Predicted PD bucket | Loans | Defaults | Mean predicted PD | Observed default rate | Calibration gap (percentage points) |
+|---|---:|---:|---:|---:|---:|
+| 0–5% | 2,591 | 15 | 3.87% | 0.58% | 3.29 |
+| 5–10% | 1,340 | 40 | 6.63% | 2.99% | 3.65 |
+| 10–15% | 551 | 55 | 12.34% | 9.98% | 2.36 |
+| 15–20% | 263 | 36 | 17.02% | 13.69% | 3.34 |
+| 20–30% | 173 | 28 | 24.16% | 16.18% | 7.97 |
+| 30–50% | 151 | 44 | 38.46% | 29.14% | 9.32 |
+| 50–100% | 437 | 197 | 68.44% | 45.08% | 23.36 |
 
-- Exposure at Default
-- Predicted PD
-- Predicted LGD
-- Expected Loss
-- Stress incremental ECL
+The largest calibration gap occurs in the 50–100% predicted-PD bucket. This is documented as residual probability-calibration error and potential temporal instability. It is not “fixed” by changing cutoffs after observing the final test set.
 
-Under the COVID-like scenario, the largest absolute incremental ECL contributors were:
+### Validation-derived risk bands
 
-| Sector | Incremental ECL | Incremental ECL / £1M EAD |
+Risk-band thresholds are computed from calibrated PD scores in the 2021–2022 validation period and applied unchanged to the 2023 out-of-time test data. The bands are therefore not forced to contain equal numbers of 2023 loans.
+
+| Risk band | Loans | Defaults | Mean calibrated PD | Observed default rate |
+|---|---:|---:|---:|---:|
+| Very Low | 157 | 1 | 2.77% | 0.64% |
+| Low | 565 | 2 | 3.23% | 0.35% |
+| Medium | 1,574 | 9 | 4.03% | 0.57% |
+| High | 1,507 | 31 | 6.05% | 2.06% |
+| Very High | 1,703 | 372 | 30.75% | 21.84% |
+
+The first three bands are not monotonic by observed default rate. They contain only 1, 2, and 9 defaults, respectively, so their observed rates are sensitive to a small number of events. The Very High band shows a clear concentration of defaults. This is retained as a model-risk finding; thresholds are not retuned on the 2023 test data.
+
+## LGD modelling
+
+LGD is modelled on defaulted loans using `HistGradientBoostingRegressor` and compared with a mean-LGD baseline. The notebook reports MAE, RMSE, and R² across validation and out-of-time test populations. Predicted LGD values are constrained to the valid `[0, 1]` range before ECL calculation.
+
+Because LGD targets are available only for defaulted loans, LGD results should be interpreted separately from PD performance. This model is a demonstration of an LGD workflow, not a production recovery model.
+
+## ECL and macro stress testing
+
+The portfolio-level calculation is:
+
+```text
+Expected Credit Loss = Probability of Default × Loss Given Default × Exposure at Default
+ECL                  = PD × LGD × EAD
+```
+
+Six scenarios are included:
+
+- Baseline
+- Mild
+- Adverse
+- GFC-like
+- Severe
+- COVID-like
+
+Updated SQL Server stress-summary outputs:
+
+| Scenario | Stressed ECL | Increase vs baseline |
 |---|---:|---:|
-| **Financials** | **£277.3M** | £84.5K |
-| **Energy** | **£260.1M** | **£113.9K** |
-| **Real Estate** | **£232.9M** | £89.3K |
-| **Industrials** | **£226.5M** | **£109.7K** |
-| **Utilities** | **£209.9M** | £85.9K |
+| Baseline | £1.208B | 0.00% |
+| Mild | £1.484B | 22.86% |
+| Adverse | £1.868B | 54.70% |
+| GFC-like | £2.209B | 82.93% |
+| Severe | £2.401B | 98.83% |
+| COVID-like | £2.917B | 141.53% |
 
-This demonstrates an important portfolio-risk distinction:
+Stress multipliers are an independently constructed analytical demonstration. They are not calibrated regulatory stress parameters and should not be treated as IFRS 9 expected credit loss estimates.
 
-> The largest absolute loss contributor is not necessarily the highest-risk sector per unit of exposure.
+## Sector analysis
 
-Financials produces the largest absolute incremental ECL, while Energy has substantially higher incremental ECL intensity per £1M of EAD.
+Sector summaries compare exposure, average PD, average LGD, expected loss, and incremental stressed ECL. One portfolio insight is that the sector with the largest absolute incremental loss does not have to be the sector with the highest loss intensity per unit of exposure. Use both total contribution and ECL per £1 million of EAD when reviewing concentration and intensity.
 
----
-
-# 🔍 Model Interpretation
-
-## PD Model
-
-The Logistic Regression model learned several economically interpretable relationships.
-
-Lower-quality initial credit ratings were associated with higher modeled default odds.
-
-Higher credit scores were associated with lower modeled default odds.
-
-Longer maturity was associated with higher modeled default odds.
-
-Numeric predictor correlations were generally weak. The largest observed absolute pairwise correlation was approximately:
-
-```text
-Credit Score vs Coupon Rate = -0.170
-```
-
-No obvious severe pairwise multicollinearity problem was identified among the numeric predictors.
-
----
-
-# 🔐 Leakage & Feature Governance
-
-A major component of BankSense 2.0 is distinguishing information available at origination from information that is outcome-derived or downstream.
-
-### Origination-time candidate features
-
-```text
-maturity_months
-sector
-loan_type
-collateral
-initial_rating
-credit_score
-coupon_rate
-leverage
-interest_coverage
-debt_to_equity
-```
-
-### Excluded from the primary PD model
-
-```text
-default_date
-survival_months
-recovery_rate
-loss_given_default
-el
-unexpected_loss
-rwa
-```
-
-These variables were excluded because they are known only after the outcome or are downstream risk calculations.
-
-`pd_annual` was retained as a benchmark rather than used as a primary PD feature.
-
----
-
-# ⏱️ Out-of-Time Validation
-
-The project deliberately avoids relying only on random train/test splitting.
-
-The main PD temporal structure is:
-
-```text
-2015–2020 → Training
-2021       → Calibration fitting
-2022       → Calibration selection
-2023       → Final out-of-time test
-```
-
-Observed default rates changed materially across the periods:
-
-| Dataset | Default Rate |
-|---|---:|
-| Training | **16.87%** |
-| Validation | **8.15%** |
-| Test | **7.54%** |
-
-This temporal shift is one of the key model-risk findings.
-
----
-
-# ⚠️ Important Model-Risk Finding
-
-The PD model demonstrates strong out-of-time discrimination but residual probability overprediction remains.
-
-For the 2023 test population:
-
-```text
-Observed default rate       = 7.54%
-Mean raw PD                 = 20.39%
-Mean Platt-calibrated PD    = 12.71%
-```
-
-The calibration gap improved from:
-
-```text
-Raw gap                     = +12.86 percentage points
-Platt-calibrated gap        =  +5.18 percentage points
-```
-
-Therefore:
-
-> The model is strong at ranking risk, but absolute PD calibration remains sensitive to temporal population shift.
-
-This is treated as an explicit model-risk finding rather than hidden.
-
----
-
-# 🧪 Model Comparison
-
-A nonlinear challenger was evaluated against the Logistic Regression baseline.
-
-| Model | Test ROC-AUC | Test Brier |
-|---|---:|---:|
-| Logistic Regression | **0.8889** | 0.0705 |
-| Gradient Boosting | 0.8783 | 0.0639 |
-
-After Platt calibration, the primary PD model achieved:
-
-```text
-Test ROC-AUC = 0.8889
-Test Brier   = 0.0584
-```
-
-Therefore:
-
-**Primary PD model:** Logistic Regression + Platt calibration
-
-**Challenger:** Gradient Boosting
-
----
-
-# 🖥️ Streamlit Dashboard
-
-BankSense 2.0 includes an interactive Streamlit dashboard for portfolio-level and loan-level credit-risk analysis.
-
-## Executive Overview
-
-![BankSense Executive Overview](docs/screenshots/executive-overview.png)
-
-## Risk Segmentation
-
-![BankSense Risk Segmentation](docs/screenshots/risk-segmentation.png)
-
-## Sector Risk
-
-![BankSense Sector Risk](docs/screenshots/sector-risk.png)
-
-## Macro Stress Testing
-
-![BankSense Macro Stress Testing](docs/screenshots/stress-testing.png)
-
-## Loan-Level Risk
-
-![BankSense Loan-Level Risk](docs/screenshots/loan-level-risk.png)
-
-### Dashboard capabilities
+## Streamlit dashboard
 
 The dashboard provides:
 
 - Executive portfolio KPIs
 - Risk-band analysis
 - Sector-level credit-risk analysis
-- Interactive six-scenario stress testing
-- Loan-level ECL exposure analysis
+- Six-scenario stress testing
+- Loan-level risk and ECL views
 - High-risk exposure filtering
 
----
+### Executive overview
 
-# ▶️ Run the Dashboard
+![BankSense Executive Overview](docs/screenshots/executive-overview.png)
+
+### Risk segmentation
+
+![BankSense Risk Segmentation](docs/screenshots/risk-segmentation.png)
+
+### Sector risk
+
+![BankSense Sector Risk](docs/screenshots/sector-risk.png)
+
+### Macro stress testing
+
+![BankSense Macro Stress Testing](docs/screenshots/stress-testing.png)
+
+### Loan-level risk
+
+![BankSense Loan-Level Risk](docs/screenshots/loan-level-risk.png)
+
+## Run locally
+
+### Prerequisites
+
+- Python 3.12+
+- [`uv`](https://docs.astral.sh/uv/)
+- VS Code/Jupyter support for notebook execution
+- Streamlit dependencies declared in `pyproject.toml`
 
 From the project root:
 
 ```powershell
+uv sync
 uv run streamlit run dashboard/app.py
 ```
 
-Then open:
+Open `http://localhost:8501` in a browser.
 
-```text
-http://localhost:8501
+To rerun the analytical workflow, execute the notebooks in order:
+
+1. `notebooks/01_data_audit.ipynb`
+2. `notebooks/02_data_cleaning.ipynb`
+3. `notebooks/03_leakage_analysis.ipynb`
+
+The modelling notebook writes refreshed CSVs to `data/model_outputs/`. Run the output tests and CSV checks after regenerating outputs.
+
+## Automated output tests
+
+The repository includes seven data-contract tests for model outputs. They check unique loan IDs, required fields, probability ranges, ECL arithmetic, stress-scenario completeness, baseline stress consistency, and dashboard output contracts.
+
+Run from the project root:
+
+```powershell
+uv run python -m unittest discover -s tests -v
 ```
 
----
+The seven tests passed in the latest reported local run. These are software/data-contract checks; they do not replace independent statistical validation of the models.
 
-# 🗂️ Project Structure
+## Microsoft SQL Server integration
+
+The project includes T-SQL scripts under `sql/sql_server/`. The verified local workflow used SQL Server Express, SSMS, Windows Authentication, and Microsoft ODBC Driver 18.
+
+### Create the database and tables
+
+In SSMS, connect to your SQL Server instance and execute these scripts in order:
+
+1. `sql/sql_server/01_create_database.sql`
+2. `sql/sql_server/02_create_schema_and_tables.sql`
+
+The database is `BankSense`; target tables are in the `banksense` schema.
+
+### Configure and validate the Python loader
+
+Install the loader dependency if it is not already in the project environment:
+
+```powershell
+uv add --dev pyodbc
+```
+
+Set the connection string for the current PowerShell session. Replace the server value with the exact instance shown in SSMS:
+
+```powershell
+$env:BANKSENSE_SQLSERVER_CONNECTION_STRING = 'DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost\SQLEXPRESS;DATABASE=BankSense;Trusted_Connection=yes;TrustServerCertificate=yes;'
+```
+
+Validate the CSV schemas before connecting:
+
+```powershell
+uv run python sql/sql_server/load_outputs.py --check-only
+```
+
+Load the six model-output CSVs:
+
+```powershell
+uv run python sql/sql_server/load_outputs.py
+```
+
+**Important:** the loader deletes and reloads records in the six `banksense` output tables within a single transaction. Use it only with the portfolio database. Do not point it at a production or shared database. Keep server credentials and passwords out of source control.
+
+### SQL analytics and quality checks
+
+In SSMS, execute:
+
+- `sql/sql_server/03_analytics_queries.sql` — portfolio summary, risk-band metrics, sector contribution, stress scenarios, and review queue.
+- `sql/sql_server/04_data_quality_checks.sql` — row counts, probability-range checks, ECL arithmetic checks, and scenario inventory.
+
+The six loaded tables and their verified row counts in the latest local run are:
+
+| Table | Rows |
+|---|---:|
+| `banksense.loan_risk_output` | 5,506 |
+| `banksense.stress_ecl_loan_level` | 33,036 |
+| `banksense.stress_summary` | 6 |
+| `banksense.sector_dashboard` | 10 |
+| `banksense.risk_band_dashboard` | 5 |
+| `banksense.portfolio_dashboard_summary` | 10 |
+
+A separate `sql/postgresql/` folder is also included as an alternative SQL implementation. The documented tested workflow above uses Microsoft SQL Server.
+
+## Data source and attribution
+
+The project uses the public Kaggle dataset **Credit Risk Dataset — 50k Loans, 10 Sectors**, created by **Sergey Nefedov**:
+
+- Source: https://www.kaggle.com/datasets/sergionefedov/credit-risk-dataset-50k-loans-10-sectors
+- Dataset license stated in the source record: MIT License
+- Provenance and license notice: [`data/raw/SOURCE_AND_LICENSE.txt`](data/raw/SOURCE_AND_LICENSE.txt)
+
+The original dataset creator remains the dataset author. This repository's notebooks, modelling workflow, SQL integration, tests, and dashboard are the portfolio implementation built around the attributed dataset.
+
+## Repository structure
 
 ```text
 Bank_sense_2.0/
-│
 ├── data/
 │   ├── raw/
-│   │   ├── SOURCE_AND_LICENSE.txt
-│   │   ├── credit_ratings.csv
-│   │   ├── credit_risk_column_descriptions.txt
-│   │   ├── loan_portfolio.csv
-│   │   ├── macro_stress_scenarios.csv
-│   │   ├── portfolio_metrics.csv
-│   │   └── vintage_analysis.csv
-│   │
 │   ├── processed/
-│   │   ├── credit_ratings_clean.csv
-│   │   ├── loan_portfolio_clean.csv
-│   │   ├── macro_stress_scenarios_clean.csv
-│   │   ├── portfolio_metrics_clean.csv
-│   │   └── vintage_analysis_clean.csv
-│   │
 │   └── model_outputs/
-│       ├── banksense_2023_loan_risk_output.csv
-│       ├── portfolio_dashboard_summary.csv
-│       ├── risk_band_dashboard.csv
-│       ├── sector_dashboard.csv
-│       ├── stress_ecl_loan_level.csv
-│       └── stress_summary.csv
-│
+├── dashboard/
+│   └── app.py
 ├── docs/
 │   └── screenshots/
-│       ├── executive-overview.png
-│       ├── risk-segmentation.png
-│       ├── sector-risk.png
-│       ├── stress-testing.png
-│       └── loan-level-risk.png
-│
 ├── notebooks/
 │   ├── 01_data_audit.ipynb
 │   ├── 02_data_cleaning.ipynb
 │   └── 03_leakage_analysis.ipynb
-│
-├── dashboard/
-│   └── app.py
-│
+├── sql/
+│   ├── postgresql/
+│   └── sql_server/
 ├── src/
 │   └── bank_sense_2_0/
-│       └── __init__.py
-│
+├── tests/
+│   └── test_model_outputs.py
+├── AUDIT_REPORT.md
 ├── pyproject.toml
 ├── uv.lock
 ├── .python-version
-├── .gitignore
 └── README.md
 ```
 
----
+## Limitations and model-risk disclosures
 
-# 🧭 Analytical Workflow
+- The dataset is synthetic/public demonstration data, not confidential customer or bank data.
+- The observed default prevalence falls from training to validation and 2023 test; this temporal change affects absolute PD calibration.
+- Even after Platt calibration, mean predicted PD exceeds the observed 2023 default rate. The fixed-bin analysis also shows larger gaps in the upper predicted-risk buckets.
+- Validation-derived risk bands are not monotonic by observed default rate in the first three 2023 bands. The low number of defaults in those bands makes rates unstable, and thresholds were not retuned on the final test set.
+- LGD is evaluated conditionally on default.
+- ECL is a simplified `PD × LGD × EAD` demonstration, not a full IFRS 9 implementation: accounting staging, discounted expected cash flows, lifetime-PD term structures, and institution-specific production assumptions are not implemented.
+- Macro stress multipliers are illustrative and not regulatory calibration.
+- Model coefficients and feature effects describe conditional associations, not causal relationships.
+- Automated tests validate data contracts and arithmetic; they are not a substitute for independent model validation, governance, monitoring, or regulatory review.
 
-```text
-Raw Credit Data
-       │
-       ▼
-01 — Data Audit
-       │
-       ▼
-02 — Data Cleaning
-       │
-       ▼
-03 — Leakage & Feature Eligibility
-       │
-       ├───────────────┐
-       ▼               ▼
-    PD Model         LGD Model
-       │               │
-       ▼               ▼
-  Calibration       Severity
-       │               │
-       └───────┬───────┘
-               ▼
-              ECL
-               │
-               ▼
-       Macro Stress Testing
-               │
-               ▼
-      Portfolio Risk Analytics
-               │
-               ▼
-       Streamlit Dashboard
-```
+## Key takeaway
 
----
-
-# 🧰 Technology Stack
-
-- Python
-- pandas
-- NumPy
-- scikit-learn
-- Streamlit
-- Jupyter
-- uv
-- Git
-- GitHub
-
----
-
-# 📌 Important Limitations
-
-BankSense 2.0 is a portfolio analytics and modelling demonstration using a synthetic credit-risk dataset.
-
-It should not be interpreted as a production-ready credit approval system.
-
-Important limitations include:
-
-- The portfolio is synthetic.
-- Residual PD calibration drift remains under temporal population shift.
-- LGD is modelled conditional on default.
-- Stress ECL uses an independently constructed methodology.
-- Source benchmark ECL figures are not assumed to be ground truth.
-- Model coefficients describe conditional associations rather than causal effects.
-- Production deployment would require additional validation, monitoring, governance, documentation, and regulatory review.
-
----
-
-# 💡 Key Takeaway
-
-BankSense 2.0 demonstrates an end-to-end credit-risk workflow that goes beyond simply training a machine-learning model.
-
-The project explicitly addresses:
-
-**Data Quality → Feature Timing → Leakage → Temporal Validation → Probability Calibration → Loss Severity → Exposure → Expected Loss → Stress Testing → Portfolio Concentration → Dashboard Delivery**
-
-The core calculation is:
-
-```text
-Probability of Default
-        ×
-Loss Given Default
-        ×
-Exposure at Default
-        =
-Expected Credit Loss
-```
-
-while maintaining an explicit focus on **out-of-time performance and model risk**.
-
----
+BankSense 2.0 demonstrates a workflow from data quality and feature governance through temporal PD modelling, calibration comparison, LGD modelling, ECL, stress testing, dashboard delivery, and SQL Server analytics. It also documents weaknesses instead of tuning them away on the final test set—an important part of responsible credit-risk analysis.
 
 ## Author
 
 **Ashwani Kumar Tripathi**
 
-BankSense 2.0 — Credit Risk & Expected Loss Analytics
+*BankSense 2.0 — Credit Risk & Expected Loss Analytics*
