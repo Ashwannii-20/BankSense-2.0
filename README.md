@@ -2,7 +2,11 @@
 
 **BankSense 2.0** is an end-to-end credit-risk analytics portfolio project built on a public 50,000-loan dataset. It combines Python-based PD/LGD modelling, probability calibration, expected credit loss (ECL), macro stress testing, a Streamlit dashboard, automated output checks, and Microsoft SQL Server analytics.
 
-Launch BankSense 2.0 Dashboard link:[https://banksense-2-0.streamlit.app/](https://banksense-2-0.streamlit.app/)
+## Live Demo
+
+Explore the interactive BankSense 2.0 credit-risk dashboard.
+
+**[Launch BankSense 2.0 Dashboard](https://banksense-2-0.streamlit.app/)**
 
 > **Scope:** This is an independent portfolio demonstration using public dataset records. It is not an IDBI Bank project, does not use confidential bank data, and is not a production credit-decisioning or regulatory reporting system.
 
