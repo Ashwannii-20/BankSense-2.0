@@ -343,6 +343,6 @@ BankSense 2.0 demonstrates a workflow from data quality and feature governance t
 
 ## Author
 
-**Ashwani Kumar Tripathi**
+**Ashwani Tripathi**
 
 *BankSense 2.0 — Credit Risk & Expected Loss Analytics*
