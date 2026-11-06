@@ -95,6 +95,25 @@ Risk-band thresholds are computed from calibrated PD scores in the 2021–2022 v
 
 The first three bands are not monotonic by observed default rate. They contain only 1, 2, and 9 defaults, respectively, so their observed rates are sensitive to a small number of events. The Very High band shows a clear concentration of defaults. This is retained as a model-risk finding; thresholds are not retuned on the 2023 test data.
 
+## 12-month PD rebuild (fix for the out-of-time calibration gap)
+
+**Finding.** The original PD target was lifetime default ("ever defaulted"). Lifetime default rates by origination year move from 12.75% (2015) to 21.54% (2019) and down to 7.54% (2023), mostly because the 2017–2020 cohorts were exposed to the COVID shock. Training on 2015–2020 lifetime defaults made the model over-predict 2023 (mean PD 12.73% vs 7.54% observed).
+
+**Fix.** `src/bank_sense_2_0/pd_12m.py` rebuilds PD on a fixed **12-month default window**, the horizon used for Basel PD and IFRS 9 Stage 1 ECL. The 12-month default rate is stable at about 2.1–2.3% in normal years, but jumps to 12.33% for 2019 originations and 5.75% for 2020, whose first year overlaps the shock.
+
+Two training designs were compared on the 2022 selection period (2023 untouched): all 2015–2020 cohorts vs excluding the 2019–2020 COVID cohorts (kept for stress testing instead). Excluding them cut the 2022 calibration gap from 0.74 to 0.20 pp, so that design was selected.
+
+| Split | Loans | Defaults | Observed 12m DR | Mean PD | Gap (pp) | ROC-AUC | Brier |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Train 2015–2018 | 22,250 | 475 | 2.135% | 2.423% | 0.288 | 0.8696 | 0.01943 |
+| Calibrate 2021 (Platt) | 5,564 | 128 | 2.301% | 2.301% | 0.000 | 0.8520 | 0.02089 |
+| Select 2022 | 5,571 | 126 | 2.262% | 2.463% | 0.202 | 0.8643 | 0.02065 |
+| **Out-of-time 2023** | **5,506** | **115** | **2.089%** | **2.462%** | **0.373** | **0.8760** | **0.01915** |
+
+The out-of-time calibration gap falls from about 5.2 pp (lifetime target) to 0.37 pp, with a slightly conservative bias, and discrimination improves (AUC 0.876). In the top bucket (PD > 10%) mean PD is 15.69% against 13.16% observed, down from 68.44% vs 45.08%. Outputs: `data/model_outputs/pd_12m_summary.csv`, `pd_12m_calibration_buckets_2023.csv`, `pd_12m_2023_scores.csv`.
+
+**Next step.** Use the 12-month PD for Stage 1 ECL and a PD term structure (e.g. from vintage curves) for lifetime Stage 2 ECL.
+
 ## LGD modelling
 
 LGD is modelled on defaulted loans using `HistGradientBoostingRegressor` and compared with a mean-LGD baseline. The notebook reports MAE, RMSE, and R² across validation and out-of-time test populations. Predicted LGD values are constrained to the valid `[0, 1]` range before ECL calculation.
