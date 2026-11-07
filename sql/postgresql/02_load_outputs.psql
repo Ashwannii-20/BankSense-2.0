@@ -1,0 +1,15 @@
+-- Run from the Bank_sense_2.0 project root.
+-- Example: psql -U postgres -d banksense -f sql/postgresql/02_load_outputs.psql
+-- Execute 01_create_schema.sql first; CSV paths below are relative to the psql client cwd.
+
+-- Clear prior output rows so rerunning this loader does not cause primary-key conflicts.
+TRUNCATE TABLE banksense.loan_risk_output, banksense.stress_ecl_loan_level,
+              banksense.stress_summary, banksense.sector_dashboard,
+              banksense.risk_band_dashboard, banksense.portfolio_dashboard_summary;
+
+\copy banksense.loan_risk_output (loan_id, origination_date, sector, loan_type, collateral, initial_rating, credit_score, ead, defaulted, pd_raw, pd_calibrated, lgd_predicted, ecl_predicted, risk_band, pd_covid_stressed, lgd_covid_stressed, ecl_covid_stressed, covid_incremental_ecl) FROM 'data/model_outputs/banksense_2023_loan_risk_output.csv' WITH (FORMAT csv, HEADER true)
+\copy banksense.stress_ecl_loan_level (loan_id, sector, initial_rating, collateral, loan_type, ead, pd_base, lgd_base, ecl_base, pd_stress_multiplier, lgd_stress_multiplier, pd_stressed, lgd_stressed, ecl_stressed, scenario) FROM 'data/model_outputs/stress_ecl_loan_level.csv' WITH (FORMAT csv, HEADER true)
+\copy banksense.stress_summary (scenario, total_ead, baseline_ecl, stressed_ecl, average_pd, average_lgd, ecl_increase, ecl_increase_pct, ecl_rate) FROM 'data/model_outputs/stress_summary.csv' WITH (FORMAT csv, HEADER true)
+\copy banksense.sector_dashboard (sector, loans, total_ead, average_pd, average_lgd, total_ecl, covid_ecl, ecl_share_pct, covid_incremental_ecl, covid_incremental_ecl_per_1m_ead) FROM 'data/model_outputs/sector_dashboard.csv' WITH (FORMAT csv, HEADER true)
+\copy banksense.risk_band_dashboard (risk_band, loans, total_ead, average_pd, average_lgd, total_ecl, covid_ecl, ecl_share_pct, covid_incremental_ecl) FROM 'data/model_outputs/risk_band_dashboard.csv' WITH (FORMAT csv, HEADER true)
+\copy banksense.portfolio_dashboard_summary (metric, value) FROM 'data/model_outputs/portfolio_dashboard_summary.csv' WITH (FORMAT csv, HEADER true)
