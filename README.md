@@ -23,6 +23,8 @@ Explore the interactive BankSense 2.0 credit-risk dashboard.
 - Microsoft SQL Server tables, Python-to-SQL data loading, analytical T-SQL queries, and data-quality checks.
 - Seven automated data-contract tests for exported model outputs.
 
+Every number in this README is traced to its source file in [RESULTS.md](RESULTS.md).
+
 ## Current 2023 out-of-time portfolio snapshot
 
 The latest local run was regenerated after fitting preprocessing on the training split only. The figures below reflect the refreshed outputs observed in the SQL Server reconciliation.
